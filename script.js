@@ -355,6 +355,7 @@ const keysList = document.getElementById('keysList');
 const keysListContent = document.getElementById('keysListContent');
 const backBtn = document.getElementById('backBtn');
 
+if (adminForm) {
 adminForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   if (!adminPassword.value || !expirationDays.value) return;
@@ -424,9 +425,60 @@ viewKeysBtn.addEventListener('click', async () => {
   }
 });
 
-backBtn.addEventListener('click', () => {
-  showPage('accessPage');
-});
+}
+
+if (backBtn) {
+  backBtn.addEventListener('click', () => {
+    showPage('accessPage');
+  });
+}
+
+if (copyKeyBtn) {
+  copyKeyBtn.addEventListener('click', () => {
+    if (generatedKey) {
+      generatedKey.select();
+      document.execCommand('copy');
+      copyKeyBtn.textContent = '✓ Copied';
+      setTimeout(() => {
+        copyKeyBtn.textContent = 'Copy';
+      }, 2000);
+    }
+  });
+}
+
+if (viewKeysBtn) {
+  viewKeysBtn.addEventListener('click', async () => {
+    if (!keysList) return;
+    if (keysList.classList.contains('hidden')) {
+      try {
+        const password = prompt('Enter admin password:');
+        if (!password) return;
+
+        const response = await fetch(`${BACKEND_URL}/api/admin/keys`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+          keysListContent.innerHTML = data.keys.map(k => {
+            const used = k.used ? '✓ Used' : '⏳ Unused';
+            const expires = new Date(k.expiresAt).toLocaleDateString();
+            return `<div class="key-item"><p>${k.key} - ${used} - Expires: ${expires}</p></div>`;
+          }).join('');
+          keysList.classList.remove('hidden');
+        } else {
+          alert('Error: ' + data.message);
+        }
+      } catch (err) {
+        alert('Error fetching keys: ' + err.message);
+      }
+    } else {
+      keysList.classList.add('hidden');
+    }
+  });
+}
 
 // === INITIALIZATION ===
 document.addEventListener('DOMContentLoaded', () => {
